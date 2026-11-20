@@ -1,0 +1,397 @@
+<title>Ficha do Hóspede</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="leitor.js"></script>
+<script src="leitor-print.js"></script>
+<script src="logo.js"></script>
+<style>
+  /* Identidade visual Rio Hosting — ver ../marca.md */
+  :root { --teal500:#149C8B; --teal700:#0B7266; --teal100:#E3F4F1; --sol:#F2B33D; --ink:#12302C; --muted:#4F6662; --surface2:#F3F8F7; --branco:#FFFFFF; --borda:#CFE3DF;
+    --pg-bg:#FFFFFF; --pg-fg:#12302C; --pg-muted:#4F6662; --pg-card:#F3F8F7; --pg-campo:#FFFFFF; --pg-borda:#CFE3DF; --pg-link:#0B7266; --pg-suave:#E3F4F1; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pg-bg:#0E1F1C; --pg-fg:#E6F2EF; --pg-muted:#9FB8B3; --pg-card:#15302B; --pg-campo:#0E1F1C; --pg-borda:#2A4A44; --pg-link:#5CC9B9; --pg-suave:#1B3A35; color-scheme:dark; } }
+  :root[data-theme="dark"] { --pg-bg:#0E1F1C; --pg-fg:#E6F2EF; --pg-muted:#9FB8B3; --pg-card:#15302B; --pg-campo:#0E1F1C; --pg-borda:#2A4A44; --pg-link:#5CC9B9; --pg-suave:#1B3A35; color-scheme:dark; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--pg-bg); color:var(--pg-fg); font-family:Manrope, system-ui, sans-serif; font-size:16px; line-height:26px; }
+  .app { max-width:1180px; margin:0 auto; padding-block:24px 48px; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); display:grid; gap:24px; grid-template-columns:minmax(0,380px) minmax(0,1fr); align-items:start; }
+  @media (max-width:860px) { .app { grid-template-columns:minmax(0,1fr); } }
+  .marca { height:40px; display:block; margin-bottom:8px; background:#fff; border-radius:6px; padding:2px 6px; max-width:100%; object-fit:contain; }
+  h1 { font-size:26px; line-height:34px; font-weight:700; margin:0; }
+  .sub { color:var(--pg-muted); font-size:14px; line-height:20px; margin:0 0 24px; }
+  .cartao { background:var(--pg-card); border-radius:12px; padding:16px; }
+  .passo { font-weight:600; font-size:20px; line-height:28px; margin:24px 0 8px; }
+  .passo:first-of-type { margin-top:0; }
+  label { display:block; font-size:12px; line-height:16px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--pg-muted); margin:16px 0 6px; }
+  input[type=text], textarea { width:100%; font:inherit; font-size:16px; line-height:22px; padding:10px 12px; border:1px solid var(--pg-borda); border-radius:6px; background:var(--pg-campo); color:var(--pg-fg); }
+  input[type=text]:focus, textarea:focus { outline:2px solid var(--teal500); outline-offset:0; border-color:var(--teal500); }
+  textarea { min-height:64px; resize:vertical; }
+  .arquivo { display:block; border:2px dashed var(--teal500); border-radius:12px; padding:14px 16px; text-align:center; cursor:pointer; font-size:14px; line-height:20px; font-weight:600; color:var(--pg-link); background:var(--pg-campo); text-transform:none; letter-spacing:0; margin:0; }
+  .arquivo:hover { background:var(--pg-suave); }
+  .arquivo input { display:none; }
+  .aviso { font-size:14px; line-height:20px; margin-top:8px; min-height:1em; color:var(--pg-muted); }
+  .aviso.ok { color:var(--pg-link); } .aviso.erro { color:#B3261E; }
+  .aviso-logo { background:var(--pg-suave); color:var(--pg-fg); border-radius:12px; padding:12px 16px; font-size:14px; line-height:20px; margin-bottom:16px; }
+  .miniaturas { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .miniaturas div { position:relative; }
+  .miniaturas img { height:64px; border-radius:6px; display:block; }
+  .miniaturas button { position:absolute; top:-6px; right:-6px; width:22px; height:22px; border-radius:999px; border:none; background:var(--ink); color:#fff; cursor:pointer; font-size:13px; line-height:1; }
+  .baixar { width:100%; margin-top:24px; padding:16px; font:inherit; font-size:16px; font-weight:700; color:#fff; background:var(--teal700); border:none; border-radius:999px; cursor:pointer; }
+  .baixar:hover { background:#095e54; }
+  .baixar:disabled { opacity:.6; cursor:wait; }
+  .ou { text-align:center; font-size:14px; line-height:20px; color:var(--pg-muted); margin:8px 0; }
+  .lidas { margin-top:12px; border:1px solid var(--pg-borda); border-radius:12px; background:var(--pg-campo); padding:12px; }
+  .lidas-titulo { font-size:14px; line-height:20px; font-weight:600; margin:0 0 4px; }
+  .lidas-dica { font-size:14px; line-height:20px; color:var(--pg-muted); margin:0 0 8px; }
+  .lista-linhas { display:flex; flex-direction:column; gap:4px; max-height:260px; overflow-y:auto; }
+  .lista-linhas button { text-align:left; font:inherit; font-size:14px; line-height:20px; padding:6px 10px; border:1px solid var(--pg-borda); border-radius:6px; background:var(--pg-bg); color:var(--pg-fg); cursor:pointer; overflow-wrap:anywhere; }
+  .lista-linhas button:hover, .lista-linhas button.sel { border-color:var(--teal500); background:var(--pg-suave); }
+  .escolha { margin-top:8px; padding:10px; border-radius:12px; background:var(--pg-suave); }
+  .escolha p { margin:0 0 8px; font-size:14px; line-height:20px; overflow-wrap:anywhere; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chips button { font:inherit; font-size:14px; line-height:20px; font-weight:600; padding:6px 12px; border-radius:999px; border:1px solid var(--teal700); background:var(--pg-campo); color:var(--pg-link); cursor:pointer; }
+  .chips button:hover { background:var(--teal700); color:#fff; }
+  .previa-titulo { font-size:12px; line-height:16px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--pg-muted); margin:0 0 8px; }
+  .previa { overflow:hidden; border-radius:12px; border:1px solid var(--pg-borda); background:#fff; }
+  .previa-escala { transform-origin:top left; width:794px; }
+
+  /* ---------- A FICHA (tamanho A4) ---------- */
+  #ficha { width:794px; height:1122px; background:#fff; color:var(--ink); font-family:Manrope, Arial, sans-serif; padding:48px 56px 32px; display:flex; flex-direction:column; }
+  #ficha .topo { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; min-height:68px; }
+  #ficha .logo { height:68px; display:block; }
+  #ficha .apto { font-size:20px; font-weight:600; color:var(--muted); text-align:right; line-height:1.1; }
+  #ficha .apto b { display:block; font-size:40px; font-weight:800; color:var(--teal700); }
+  #ficha .tabela { border:1.5px solid var(--teal500); border-radius:12px; overflow:hidden; flex:1; display:flex; flex-direction:column; }
+  #ficha .linha { display:grid; grid-template-columns:1fr 250px; border-bottom:1px solid var(--borda); }
+  #ficha .linha > div { padding:10px 16px; min-height:64px; }
+  #ficha .linha > div + div { border-left:1px solid var(--borda); }
+  #ficha .rot { font-size:11px; line-height:16px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  #ficha .val { font-size:18px; line-height:24px; font-weight:700; margin-top:4px; }
+  #ficha .outras { border-bottom:1px solid var(--borda); padding:10px 16px; height:130px; }
+  #ficha .outras .val { font-weight:400; font-size:15px; line-height:22px; white-space:pre-wrap; }
+  #ficha .docs { flex:1; padding:10px 16px; display:flex; flex-direction:column; min-height:0; }
+  #ficha .docs .rot i { font-weight:400; text-transform:none; letter-spacing:0; }
+  #ficha .docs-area { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:space-evenly; gap:14px; padding:12px 0; min-height:0; }
+  #ficha .docs-area img { max-width:78%; object-fit:contain; display:block; border-radius:6px; }
+  #ficha .rodape { display:flex; justify-content:space-between; align-items:flex-end; margin-top:16px; font-size:14px; line-height:20px; }
+  #ficha .rodape .lema { color:var(--teal700); font-weight:600; }
+  #ficha .rodape .contato { text-align:right; color:var(--muted); }
+  #ficha .rodape .contato b { color:var(--ink); font-size:16px; }
+</style>
+<div class="app">
+  <div>
+    <img class="marca" data-logo alt="Rio Hosting">
+    <h1>Ficha do Hóspede</h1>
+    <p class="sub">Protótipo com leitura de prints · Rio Hosting</p>
+    <div class="aviso-logo" id="avisoLogo" hidden>O arquivo do logo (logo.js) não foi encontrado nesta pasta.</div>
+    <div class="cartao">
+      <div class="passo">1. Dados da reserva</div>
+      <label class="arquivo">Escolher o PDF da reserva do Airbnb
+        <input type="file" id="pdfReserva" accept="application/pdf">
+      </label>
+      <div class="ou">ou</div>
+      <label class="arquivo">Escolher prints (WhatsApp, Airbnb, outras)
+        <input type="file" id="prints" accept="image/*" multiple>
+      </label>
+      <div class="aviso" id="avisoReserva"></div>
+      <div class="lidas" id="lidas" hidden>
+        <p class="lidas-titulo">O que foi lido nos prints</p>
+        <p class="lidas-dica">Faltou algo? Toque numa linha e diga o que ela é.</p>
+        <div class="lista-linhas" id="listaLinhas"></div>
+        <div class="escolha" id="escolha" hidden>
+          <p>Usar “<b id="escolhaTexto"></b>” como:</p>
+          <div class="chips" id="chips"></div>
+        </div>
+      </div>
+
+      <div class="passo">2. Fotos dos documentos</div>
+      <label class="arquivo">Escolher fotos (pode ser mais de uma)
+        <input type="file" id="fotosDocs" accept="image/*" multiple>
+      </label>
+      <div class="miniaturas" id="miniaturas"></div>
+
+      <div class="passo">3. Conferir os dados</div>
+      <label for="c_hospede">Hóspede principal</label>
+      <input type="text" id="c_hospede">
+      <label for="c_acomp">Acompanhantes (separe por vírgula)</label>
+      <input type="text" id="c_acomp" placeholder="Ex.: Maria Souza, João Lima">
+      <label for="c_endereco">Endereço do imóvel</label>
+      <input type="text" id="c_endereco">
+      <label for="c_complemento">Complemento</label>
+      <input type="text" id="c_complemento" placeholder="Apto 502">
+      <label for="c_datas">Data de entrada - saída</label>
+      <input type="text" id="c_datas">
+      <label for="c_telefone">Telefone</label>
+      <input type="text" id="c_telefone">
+      <label for="c_origem">Origem</label>
+      <input type="text" id="c_origem">
+      <label for="c_outras">Outras informações</label>
+      <textarea id="c_outras" placeholder="Ex.: chegam às 23h · carro placa ABC1D23"></textarea>
+
+      <button class="baixar" id="baixar">Baixar ficha em PDF</button>
+      <div class="aviso" id="avisoBaixar"></div>
+    </div>
+  </div>
+
+  <div>
+    <p class="previa-titulo">Prévia da ficha</p>
+    <div class="previa" id="previa">
+      <div class="previa-escala" id="previaEscala">
+        <div id="ficha">
+          <div class="topo">
+            <img class="logo" id="f_logo" data-logo alt="Rio Hosting">
+            <div class="apto">Apto <b id="f_aptoTopo"></b></div>
+          </div>
+          <div class="tabela">
+            <div class="linha">
+              <div><div class="rot">Endereço do imóvel</div><div class="val" id="f_endereco"></div></div>
+              <div><div class="rot">Complemento</div><div class="val" id="f_complemento"></div></div>
+            </div>
+            <div class="linha">
+              <div><div class="rot">Hóspedes</div><div class="val" id="f_hospedes"></div></div>
+              <div><div class="rot">Telefone</div><div class="val" id="f_telefone"></div></div>
+            </div>
+            <div class="linha">
+              <div><div class="rot">Data de Entrada - Saída</div><div class="val" id="f_datas"></div></div>
+              <div><div class="rot">Origem</div><div class="val" id="f_origem"></div></div>
+            </div>
+            <div class="outras"><div class="rot">Outras informações</div><div class="val" id="f_outras"></div></div>
+            <div class="docs">
+              <div class="rot">Documento de identidade <i>Travel document</i></div>
+              <div class="docs-area" id="f_docs"></div>
+            </div>
+          </div>
+          <div class="rodape">
+            <div class="lema">Sinta-se em casa, longe de casa.</div>
+            <div class="contato">Contato Rio Hosting<br><b>Ronaldo Sanches: 21 97965-1176</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Logo: vem do logo.js. Sem ele, o espaço fica vazio e aparece o aviso.
+  document.querySelectorAll("img[data-logo]").forEach((img) => {
+    if (window.LOGO_RIO_HOSTING) img.src = window.LOGO_RIO_HOSTING;
+    else { img.style.visibility = "hidden"; document.getElementById("avisoLogo").hidden = false; }
+  });
+  pdfjsLib.GlobalWorkerOptions.workerSrc = location.protocol === "file:"
+    ? "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
+    : "pdf.worker.min.js";
+  const $ = (id) => document.getElementById(id);
+  const campos = ["hospede", "acomp", "endereco", "complemento", "datas", "telefone", "origem", "outras"];
+  let fotos = []; // { url }
+
+  function atualizarFicha() {
+    const v = Object.fromEntries(campos.map((c) => [c, $("c_" + c).value.trim()]));
+    const nomes = [v.hospede, ...v.acomp.split(",").map((s) => s.trim())].filter(Boolean);
+    $("f_hospedes").textContent = nomes.join(" / ");
+    $("f_endereco").textContent = v.endereco;
+    $("f_complemento").textContent = v.complemento;
+    $("f_aptoTopo").textContent = v.complemento.replace(/^Apto\.?\s*/i, "");
+    $("f_datas").textContent = v.datas;
+    $("f_telefone").textContent = v.telefone;
+    $("f_origem").textContent = v.origem;
+    $("f_outras").textContent = v.outras;
+    const area = $("f_docs");
+    area.innerHTML = "";
+    const n = Math.max(fotos.length, 1);
+    const alturaMax = Math.floor((500 - (n - 1) * 14) / n);
+    fotos.forEach((f) => {
+      const img = document.createElement("img");
+      img.src = f.url;
+      img.style.maxHeight = alturaMax + "px";
+      area.appendChild(img);
+    });
+  }
+  campos.forEach((c) => $("c_" + c).addEventListener("input", atualizarFicha));
+
+  async function textoDoPdf(arquivo) {
+    const pdf = await pdfjsLib.getDocument({ data: await arquivo.arrayBuffer() }).promise;
+    const saida = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const pagina = await pdf.getPage(p);
+      const conteudo = await pagina.getTextContent();
+      let ultimoY = null, linha = "";
+      for (const item of conteudo.items) {
+        const y = Math.round(item.transform[5]);
+        if (ultimoY !== null && Math.abs(y - ultimoY) > 2) { saida.push(linha); linha = ""; }
+        linha += item.str;
+        if (item.hasEOL) { saida.push(linha); linha = ""; ultimoY = null; continue; }
+        ultimoY = y;
+      }
+      if (linha) saida.push(linha);
+    }
+    return saida.join("\n");
+  }
+
+  $("pdfReserva").addEventListener("change", async (e) => {
+    const arq = e.target.files[0];
+    if (!arq) return;
+    const aviso = $("avisoReserva");
+    aviso.className = "aviso"; aviso.textContent = "Lendo…";
+    try {
+      const dados = lerReservaAirbnb(await textoDoPdf(arq));
+      ["hospede", "endereco", "complemento", "datas", "telefone", "origem"].forEach((c) => { $("c_" + c).value = dados[c] || ""; });
+      const faltando = Object.entries(dados).filter(([, v]) => !v).map(([k]) => k);
+      aviso.className = faltando.length ? "aviso erro" : "aviso ok";
+      aviso.textContent = faltando.length ? "Lido, mas faltou: " + faltando.join(", ") + ". Preencha abaixo." : "Reserva lida. Confira os dados abaixo.";
+    } catch (err) {
+      console.error(err);
+      aviso.className = "aviso erro"; aviso.textContent = "Não consegui ler esse PDF. Preencha os dados à mão.";
+    }
+    atualizarFicha();
+  });
+
+  // ---------- PRINTS: lê as letras da imagem no próprio aparelho (Tesseract) ----------
+  const NOMES_CAMPOS = { hospede: "hóspede", acomp: "acompanhantes", endereco: "endereço", complemento: "complemento",
+    datas: "datas", telefone: "telefone", origem: "origem" };
+  let leitorImagem = null;
+  async function obterLeitor(aviso) {
+    if (!leitorImagem) {
+      aviso.textContent = "Preparando o leitor (só na primeira vez demora mais)…";
+      leitorImagem = await Tesseract.createWorker("por");
+    }
+    return leitorImagem;
+  }
+
+  $("prints").addEventListener("change", async (e) => {
+    const arquivos = [...e.target.files];
+    e.target.value = "";
+    if (!arquivos.length) return;
+    const aviso = $("avisoReserva");
+    aviso.className = "aviso";
+    try {
+      const leitor = await obterLeitor(aviso);
+      const textos = [];
+      for (let i = 0; i < arquivos.length; i++) {
+        aviso.textContent = `Lendo print ${i + 1} de ${arquivos.length}…`;
+        const { data } = await leitor.recognize(arquivos[i]);
+        textos.push(data.text);
+      }
+      const texto = textos.join("\n");
+      const dados = lerPrint(texto);
+      // Só preenche o que achou; não apaga o que a equipe já digitou.
+      Object.entries(dados).forEach(([c, v]) => { if (v) $("c_" + c).value = v; });
+      const faltando = Object.keys(NOMES_CAMPOS).filter((c) => c !== "acomp").filter((c) => !$("c_" + c).value.trim()).map((c) => NOMES_CAMPOS[c]);
+      aviso.className = faltando.length ? "aviso erro" : "aviso ok";
+      aviso.textContent = faltando.length ? "Lido. Faltou: " + faltando.join(", ") + ". Toque nas linhas abaixo ou digite." : "Prints lidos. Confira os dados abaixo.";
+      mostrarLinhas(linhasDoPrint(texto));
+    } catch (err) {
+      console.error(err);
+      aviso.className = "aviso erro"; aviso.textContent = "Não consegui ler esses prints. Preencha os dados à mão.";
+    }
+    atualizarFicha();
+  });
+
+  let linhaEscolhida = "";
+  function mostrarLinhas(ls) {
+    const lista = $("listaLinhas");
+    lista.innerHTML = "";
+    ls.filter((l) => /[\p{L}\d]{2,}/u.test(l)).forEach((l) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = l;
+      b.onclick = () => {
+        lista.querySelectorAll("button").forEach((x) => x.classList.remove("sel"));
+        b.classList.add("sel");
+        linhaEscolhida = l; $("escolhaTexto").textContent = l; $("escolha").hidden = false;
+      };
+      lista.appendChild(b);
+    });
+    $("lidas").hidden = !lista.children.length;
+    $("escolha").hidden = true;
+  }
+  const DESTINOS = [["hospede", "Hóspede"], ["acomp", "+ Acompanhante"], ["endereco", "Endereço"], ["complemento", "Complemento"],
+    ["datas", "Datas"], ["telefone", "Telefone"], ["origem", "Origem"], ["outras", "+ Outras informações"]];
+  DESTINOS.forEach(([c, rotulo]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = rotulo;
+    b.onclick = () => {
+      const campo = $("c_" + c);
+      if (c === "acomp") campo.value = [campo.value.trim(), linhaEscolhida].filter(Boolean).join(", ");
+      else if (c === "outras") campo.value = [campo.value.trim(), linhaEscolhida].filter(Boolean).join("\n");
+      else campo.value = linhaEscolhida;
+      $("escolha").hidden = true;
+      $("listaLinhas").querySelectorAll("button").forEach((x) => x.classList.remove("sel"));
+      atualizarFicha();
+    };
+    $("chips").appendChild(b);
+  });
+
+  $("fotosDocs").addEventListener("change", (e) => {
+    for (const arq of e.target.files) fotos.push({ url: URL.createObjectURL(arq) });
+    e.target.value = "";
+    desenharMiniaturas(); atualizarFicha();
+  });
+
+  function desenharMiniaturas() {
+    const box = $("miniaturas");
+    box.innerHTML = "";
+    fotos.forEach((f, i) => {
+      const d = document.createElement("div");
+      d.innerHTML = `<img src="${f.url}" alt="Documento ${i + 1}"><button title="Tirar">×</button>`;
+      d.querySelector("button").onclick = () => { fotos.splice(i, 1); desenharMiniaturas(); atualizarFicha(); };
+      box.appendChild(d);
+    });
+  }
+
+  function nomeDoArquivo() {
+    const nome = $("c_hospede").value.trim() || "Hospede";
+    const comp = $("c_complemento").value.trim();
+    return ("Ficha Hosp " + nome + (comp ? " - " + comp : "")).replace(/[\\/:*?"<>|]/g, "") + ".pdf";
+  }
+
+  $("baixar").addEventListener("click", async () => {
+    const b = $("baixar");
+    b.disabled = true; b.textContent = "Gerando…";
+    $("avisoBaixar").textContent = "";
+    // Com a página rolada para baixo (comum no celular), o PDF saía em branco.
+    // Volta ao topo enquanto gera e depois devolve a posição.
+    const rolagem = window.scrollY;
+    window.scrollTo(0, 0);
+    try {
+      const gerador = html2pdf().set({
+        margin: 0,
+        filename: nomeDoArquivo(),
+        image: { type: "jpeg", quality: 0.92 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: "px", format: [794, 1122], orientation: "portrait", hotfixes: ["px_scaling"] },
+      }).from($("ficha"));
+      const downloads = window.claude?.use ? await window.claude.use("downloads") : null;
+      if (downloads) {
+        const arquivo = await gerador.outputPdf("blob");
+        await downloads.save({ filename: nomeDoArquivo(), data: arquivo });
+        $("avisoBaixar").className = "aviso ok";
+        $("avisoBaixar").textContent = "Ficha pronta.";
+      } else {
+        await gerador.save();
+      }
+    } catch (err) {
+      console.error(err);
+      if (err && err.code === "declined") {
+        $("avisoBaixar").className = "aviso"; $("avisoBaixar").textContent = "Download cancelado.";
+      } else {
+        $("avisoBaixar").className = "aviso erro";
+        $("avisoBaixar").textContent = "Deu erro ao gerar o PDF. Tente de novo.";
+      }
+    }
+    window.scrollTo(0, rolagem);
+    b.disabled = false; b.textContent = "Baixar ficha em PDF";
+  });
+
+  function ajustarPrevia() {
+    const larg = $("previa").clientWidth;
+    const esc = Math.min(1, larg / 794);
+    $("previaEscala").style.transform = `scale(${esc})`;
+    $("previa").style.height = 1122 * esc + "px";
+  }
+  window.addEventListener("resize", ajustarPrevia);
+  ajustarPrevia(); atualizarFicha();
+</script>
+
