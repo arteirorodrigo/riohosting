@@ -37,6 +37,14 @@ table.c td{padding:10px 8px;border-bottom:1px solid var(--borda)}table.c td.n{te
 @media(max-width:800px){.detalhe{grid-template-columns:1fr}.detalhe>div{min-width:0}.detalhe>div:last-child{overflow-x:auto}}
 /* Calendário */
 [hidden]{display:none!important}
+.filtro{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 24px}.filtro b{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);margin-right:6px}
+.filtro button{font:600 13px Manrope;border:1px solid var(--borda);background:#fff;color:var(--texto);border-radius:999px;padding:8px 16px;cursor:pointer}
+.filtro button:hover{border-color:var(--verde)}.filtro button.on{background:var(--verde2);border-color:var(--verde2);color:#fff}
+.stats{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--borda);font-size:13px}.stats b{color:var(--texto)}
+.selo.media{background:var(--verdeC);color:var(--verde2)}.selo.fora{background:var(--acimaC);color:var(--acima)}
+tr.tirado td{opacity:.55}tr.tirado a{text-decoration:line-through}
+.lista-apto{margin-top:16px;border:1px solid var(--borda);border-radius:12px;padding:12px 16px}.lista-apto summary{cursor:pointer;font-weight:600;color:var(--verde2)}
+.lista-apto table{margin-top:10px}.lista-apto>div{overflow-x:auto}
 .botao{font:600 14px Manrope;background:var(--verde2);color:#fff;border:0;border-radius:999px;padding:9px 20px;cursor:pointer;margin-bottom:6px}
 .botao:hover{background:var(--verde)}.botao.claro{background:#fff;color:var(--verde2);border:1px solid var(--verde2);margin:0}
 .topo{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}.topo h2{margin:0}
@@ -62,6 +70,7 @@ select.apto{font:600 15px Manrope;color:var(--texto);border:1px solid var(--bord
 </style></head><body>
 <header><img src="rio-hosting-logo-site.jpg" alt="Rio Hosting"><div class="t"><button class="botao" id="abrirCal">Ver calendário</button><h1>Pricing · Dashboard</h1><small>Atualizado em <span id="quando"></span></small></div></header>
 <main>
+  <div class="filtro" id="filtro"><b>Período</b></div>
   <div class="kpis">
     <div class="kpi"><b id="k1">0</b><span>apartamentos analisados</span></div>
     <div class="kpi"><b id="k2">0</b><span>das noites analisadas já reservadas</span></div>
@@ -72,7 +81,8 @@ select.apto{font:600 15px Manrope;color:var(--texto);border:1px solid var(--bord
   <div class="cards" id="cards"></div>
   <div class="painel"><h2 id="titulo">Dia a dia</h2><svg id="graf" width="100%"></svg>
     <div class="legenda"><span><i style="background:var(--verde)"></i>Seu preço/noite</span><span><i style="background:var(--sol)"></i>Média dos concorrentes</span><span><i style="background:var(--res);height:10px"></i>Reservado</span></div>
-    <div class="dica">Clique num dia do gráfico para ver a conta e os 5 concorrentes daquela noite.</div>
+    <div class="dica">Clique num dia do gráfico para ver a conta e os concorrentes daquela noite.</div>
+    <details class="lista-apto" id="listaApto"><summary>Concorrentes deste apartamento</summary><div></div></details>
     <div id="detalhe"></div></div>
   <section class="painel" id="calendario" hidden>
     <div class="topo"><h2>Calendário · escolha o apartamento</h2><button class="botao claro" id="voltar">← Voltar ao painel</button></div>
@@ -83,5 +93,5 @@ select.apto{font:600 15px Manrope;color:var(--texto);border:1px solid var(--bord
     <div class="dica">Clique num dia para ver a conta e os 5 concorrentes daquela noite.</div>
   </section>
 </main>
-<script src="dados.js"></script><script src="calendario.js"></script><script src="app.js"></script>
+<script src="dados.js"></script><script src="calendario.js"></script><script src="periodo.js"></script><script src="app.js"></script>
 </body></html>

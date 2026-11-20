@@ -16,16 +16,19 @@ function resumo(ap) {
     ocup: ap.noites.length ? reservadas / ap.noites.length : 0, reservadas, acima: cont("ACIMA"), abaixo: cont("ABAIXO"), namedia: cont("NA MÉDIA"),
     curto: ap.nome.replace(/^#RioLifeStyle \| /, "").split(/ [|—] /)[0].slice(0, 30) };
 }
-const APTOS = DADOS.aptos.map(resumo);
-const TOTAL_NOITES = APTOS.reduce((s, a) => s + a.noites.length, 0);
-const KPI = {
-  aptos: APTOS.length,
-  ocup: TOTAL_NOITES ? Math.round(100 * APTOS.reduce((s, a) => s + a.reservadas, 0) / TOTAL_NOITES) : 0,
-  acima: APTOS.filter(a => a.pct !== null && a.pct > 0.2).length,
-  abaixo: APTOS.filter(a => a.pct !== null && a.pct < -0.2).length,
-  namedia: APTOS.filter(a => a.pct !== null && Math.abs(a.pct) <= 0.2).length,
-  lotados: APTOS.filter(a => a.pct === null).length,
-};
+// O período escolhido (botões no topo) vale para os números, os cartões e o gráfico
+const HOJE = new Date();
+let APTOS = [], KPI = {};
+function calcular(periodo) {
+  APTOS = DADOS.aptos.map(a => resumo({ ...a, noites: a.noites.filter(n => noPeriodo(n.d, periodo, HOJE)) }));
+  const total = APTOS.reduce((s, a) => s + a.noites.length, 0);
+  KPI = {
+    aptos: APTOS.length,
+    ocup: total ? Math.round(100 * APTOS.reduce((s, a) => s + a.reservadas, 0) / total) : 0,
+    acima: APTOS.filter(a => a.pct !== null && a.pct > 0.2).length,
+    abaixo: APTOS.filter(a => a.pct !== null && a.pct < -0.2).length,
+  };
+}
 const reais = v => v === null ? "—" : "R$ " + v.toLocaleString("pt-BR");
 const pctTxt = v => v === null ? "lotado" : (v > 0 ? "+" : "") + Math.round(v * 100) + "%";
 function dataCurta(iso) { const [a, m, d] = iso.split("-"); const dia = new Date(+a, m - 1, +d); return { dm: d + "/" + m, sem: DIAS[dia.getDay()] }; }
@@ -51,7 +54,7 @@ function grafico(svg, ap, cores, aoClicar, escolhido) {
   for (let k = 0; k <= 4; k++) { const v = max * k / 4; el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: cores.grade, "stroke-width": 1 });
     el("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: cores.eixo }).textContent = "R$ " + Math.round(v).toLocaleString("pt-BR"); }
   ap.noites.forEach((nt, i) => {
-    if (i % 2 === 0 || n <= 14) { const d = dataCurta(nt.d); el("text", { x: x(i), y: H - 12, "text-anchor": "middle", "font-size": 10.5, fill: cores.eixo }).textContent = d.dm; }
+    if (i % Math.max(1, Math.ceil(n / 14)) === 0) { const d = dataCurta(nt.d); el("text", { x: x(i), y: H - 12, "text-anchor": "middle", "font-size": 10.5, fill: cores.eixo }).textContent = d.dm; }
   });
   const linha = (k, cor, larg) => {
     let d = "", pen = false;
@@ -73,22 +76,44 @@ const reais2 = v => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2
 
 // ---- página ----
 document.getElementById("quando").textContent = DADOS.atualizado;
-[["k1",KPI.aptos,""],["k2",KPI.ocup,"%"],["k3",KPI.acima,""],["k4",KPI.abaixo,""]].forEach(([id,v,s])=>contar(document.getElementById(id),v,s));
 const cor = s => ({ACIMA:"var(--acima)",ABAIXO:"var(--abaixo)","NA MÉDIA":"var(--media)",reservado:"var(--res)"})[s] || "#F3F8F7";
 const cards = document.getElementById("cards");
-APTOS.slice().sort((a,b)=>(b.pct??-9)-(a.pct??-9)).forEach((a,i)=>{
-  const c = document.createElement("div"); c.className="card"; c.style.animationDelay=(.08*i)+"s";
-  const tom = a.pct===null?"var(--suave)":a.pct>.2?"var(--acima)":a.pct<-.2?"var(--abaixo)":"var(--verde)";
-  c.innerHTML=`<h3>${esc(a.nome)}</h3><div class="precos"><div>Seu<b>${reais(a.seu)}</b></div><div style="text-align:right">Média<b>${reais(a.mercado)}</b></div></div>${a.diaria?`<div class="mini">Diária ${reais(a.diaria)} sem limpeza</div>`:""}
-   <div class="barra"><i style="background:${tom}"></i></div><span class="tag" style="color:${tom}">${a.pct===null?"sem noites livres para comparar":pctTxt(a.pct)+" vs. mercado"}</span>
-   <div class="faixa">${a.noites.map((n,j)=>`<i title="${n.d} · ${esc(n.s)}" style="background:${cor(n.s)};animation-delay:${.6+.08*i+.03*j}s"></i>`).join("")}</div>`;
-  c.onclick=()=>escolher(a,c); cards.appendChild(c);
-  setTimeout(()=>c.querySelector(".barra i").style.width=(a.pct===null?100:Math.min(100,50+a.pct*40))+"%",300+80*i);
-});
+function desenharPainel() {
+  [["k1",KPI.aptos,""],["k2",KPI.ocup,"%"],["k3",KPI.acima,""],["k4",KPI.abaixo,""]].forEach(([id,v,s])=>contar(document.getElementById(id),v,s));
+  cards.innerHTML = "";
+  APTOS.slice().sort((a,b)=>(b.pct??-9)-(a.pct??-9)).forEach((a,i)=>{
+    const c = document.createElement("div"); c.className="card"; c.style.animationDelay=(.08*i)+"s";
+    const tom = a.pct===null?"var(--suave)":a.pct>.2?"var(--acima)":a.pct<-.2?"var(--abaixo)":"var(--verde)";
+    const vazio = !a.noites.length ? "sem noites analisadas neste período" : "sem noites livres para comparar";
+    c.innerHTML=`<h3>${esc(a.nome)}</h3><div class="precos"><div>Seu<b>${reais(a.seu)}</b></div><div style="text-align:right">Média<b>${reais(a.mercado)}</b></div></div>${a.diaria?`<div class="mini">Diária ${reais(a.diaria)} sem limpeza</div>`:""}
+     <div class="barra"><i style="background:${tom}"></i></div><span class="tag" style="color:${tom}">${a.pct===null?vazio:pctTxt(a.pct)+" vs. mercado"}</span>
+     <div class="faixa">${a.noites.map((n,j)=>`<i title="${n.d} · ${esc(n.s)}" style="background:${cor(n.s)};animation-delay:${.6+.08*i+.03*j}s"></i>`).join("")}</div>`;
+    c.onclick=()=>escolher(a,c); cards.appendChild(c);
+    setTimeout(()=>c.querySelector(".barra i").style.width=(a.pct===null?100:Math.min(100,50+a.pct*40))+"%",300+80*i);
+  });
+  if (cards.children.length) { const ord=APTOS.slice().sort((a,b)=>(b.pct??-9)-(a.pct??-9)); escolher(ord[0],cards.children[0]); }
+  else cards.innerHTML="<p>Ainda não há noites analisadas. Rode o robô.</p>";
+}
 let atual=null;
 function escolher(a,c){document.querySelectorAll(".card").forEach(x=>x.classList.remove("ativo"));c.classList.add("ativo");atual=a;
   document.getElementById("titulo").textContent="Dia a dia · "+a.nome;
+  listaDoApto(a);
+  if(!a.noites.length){document.getElementById("graf").innerHTML="";document.getElementById("detalhe").innerHTML='<p class="comp">Sem noites analisadas neste período. Escolha outro período no topo.</p>';return;}
   const livre=a.noites.findIndex(n=>n.p);verDia(livre<0?0:livre);}
+const tirou = (a, id) => (DADOS.tirados?.[a.id] || []).includes(id);
+const seloRes = r => r ? '<span class="selo pf">'+(r==="hospedes"?"cabe mais gente":"sem nota")+'</span>' : "";
+const selos = an => (an.sh?'<span class="selo sh">Superhost</span>':'')+(an.pf?'<span class="selo pf">Preferido dos hóspedes</span>':'');
+const notaTxt = an => an.nota?'★ '+an.nota.toLocaleString("pt-BR")+' <small style="color:var(--suave)">('+an.av+')</small>':'—';
+// Bloco "Concorrentes deste apartamento": quem entrou na conta nas noites do período
+function listaDoApto(a){
+  const box=document.getElementById("listaApto"); if(!box) return;
+  const lista=concorrentesDoApto(a.noites, DADOS.anuncios||{});
+  box.querySelector("summary").textContent=`Concorrentes deste apartamento (${lista.length})`;
+  box.querySelector("div").innerHTML=lista.length?`<table class="c"><tr><th>Concorrente</th><th>Nota</th><th class="n">Distância</th><th class="n">Apareceu em</th></tr>
+    ${lista.map(c=>{const t=tirou(a,c.id);return `<tr class="${t?"tirado":""}"><td><a href="${linkAirbnb(c.url)}" target="_blank" rel="noopener">${esc(c.nome)}</a><br>${selos(c)}${t?'<span class="selo fora">você tirou</span>':''}</td><td>${notaTxt(c)}</td><td class="n">${c.dist} m</td><td class="n">${c.noites} noite${c.noites>1?"s":""}</td></tr>`}).join("")}</table>
+    <div class="dica">Para tirar alguém da conta, marque "Não" na coluna "Usar?" da aba "Meus concorrentes" da planilha e clique em "Recalcular com minhas escolhas" no robô.</div>`
+    :'<p class="comp">Ainda sem concorrentes neste período.</p>';
+}
 function verDia(i){const a=atual,n=a.noites[i],d=dataCurta(n.d);
   grafico(document.getElementById("graf"),a,{grade:"#E6ECEB",eixo:"#4F6662",reservado:"#F3F8F7",seu:"#149C8B",media:"#F2B33D"},verDia,i);
   const corS={ACIMA:["#FBE8E3","#A8432E"],ABAIXO:["#E3F4F1","#0B7266"],"NA MÉDIA":["#EEF3F2","#4F6662"]}[n.s]||["#eee","#888"];
@@ -102,13 +127,29 @@ function verDia(i){const a=atual,n=a.noites[i],d=dataCurta(n.d);
       <div><span>+ taxa de limpeza</span><span>${reais2(n.lp)}</span></div>
       <div class="tot"><span>Total pago pelo hóspede</span><span>${reais2(n.total)}</span></div>
       <small>= ${reais2(n.total/N)} por noite com limpeza</small></div>
-    <div class="comp">Média dos ${n.n} concorrentes parecidos: <b>${reais2(n.mx)}</b> por noite (<b>${reais2(Math.round(mediaTot))}</b> na estadia, já com a limpeza deles).<br>Você está <b style="color:${corS[1]}">${pct>0?"+":""}${pct}%</b> em relação à média.</div></div>
+    <div class="comp">Média dos ${n.n} concorrentes parecidos: <b>${reais2(n.mx)}</b> por noite (<b>${reais2(Math.round(mediaTot))}</b> na estadia, já com a limpeza deles).<br>Você está <b style="color:${corS[1]}">${pct>0?"+":""}${pct}%</b> em relação à média.
+      ${n.md?`<div class="stats"><span>Média <b>${reais2(n.mx)}</b></span><span>Mediana <b>${reais2(n.md)}</b></span><span>Menor <b>${reais2(n.mn)}</b></span><span>Maior <b>${reais2(n.mxp)}</b></span><span><b>${n.n}</b> concorrentes na conta</span></div>`:""}</div></div>
     <div><table class="c"><tr><th>Concorrente</th><th>Nota</th><th class="n">Distância</th><th class="n">Por noite</th><th class="n">Total ${N} noites</th></tr>
-    ${n.conc.map(c=>`<tr><td><a href="${linkAirbnb(c.url)}" target="_blank" rel="noopener">${esc(c.nome)}</a><br>${c.sh?'<span class="selo sh">Superhost</span>':''}${c.pf?'<span class="selo pf">Preferido dos hóspedes</span>':''}${c.res?'<span class="selo pf">'+(c.res==="hospedes"?"cabe mais gente":"sem nota")+'</span>':''}</td>
-      <td>${c.nota?'★ '+c.nota.toLocaleString("pt-BR")+' <small style="color:var(--suave)">('+c.av+')</small>':'—'}</td><td class="n">${c.dist} m</td><td class="n">${reais2(c.noite)}</td><td class="n">${reais2(Math.round(c.noite*N))}</td></tr>`).join("")}
+    ${n.conc.slice().sort((x,y)=>x.noite-y.noite).map(c=>{const an=(DADOS.anuncios||{})[c.id]||{},t=tirou(a,c.id),na=n.completo&&c.res===null&&!c.fora&&!t;
+      return `<tr class="${t?"tirado":""}"><td><a href="${linkAirbnb(an.url)}" target="_blank" rel="noopener">${esc(an.nome)}</a><br>${na?'<span class="selo media">na média</span>':''}${selos(an)}${seloRes(c.res)}${t?'<span class="selo fora">você tirou</span>':''}</td>
+      <td>${notaTxt(an)}</td><td class="n">${c.dist} m</td><td class="n">${reais2(c.noite)}</td><td class="n">${reais2(Math.round(c.noite*N))}</td></tr>`}).join("")}
     </table><div class="dica">O Airbnb mostra só o total dos concorrentes: não dá para separar a limpeza deles.</div></div></div>`;}
-if(cards.children.length){const ord=APTOS.slice().sort((a,b)=>(b.pct??-9)-(a.pct??-9));escolher(ord[0],cards.children[0]);}
-else document.getElementById("cards").innerHTML="<p>Ainda não há noites analisadas. Rode o robô.</p>";
+
+// ---- filtro de período (lembra a escolha neste navegador) ----
+(function () {
+  const barra = document.getElementById("filtro");
+  const opcoes = opcoesDePeriodo(DADOS.aptos.flatMap(a => a.noites.map(n => n.d)));
+  let escolhido = "30";
+  try { const salvo = localStorage.getItem("rh-periodo"); if (opcoes.some(o => o[0] === salvo)) escolhido = salvo; } catch (e) {}
+  barra.insertAdjacentHTML("beforeend", opcoes.map(([v, t]) => `<button data-p="${v}">${t}</button>`).join(""));
+  const aplicar = p => {
+    escolhido = p; barra.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.p === p));
+    try { localStorage.setItem("rh-periodo", p); } catch (e) {}
+    calcular(p); desenharPainel();
+  };
+  barra.querySelectorAll("button").forEach(b => b.onclick = () => aplicar(b.dataset.p));
+  aplicar(escolhido);
+})();
 
 // ---- calendário: um apartamento (lista) e um mês por vez, do mês atual até dezembro do ano que vem ----
 (function () {
@@ -116,7 +157,7 @@ else document.getElementById("cards").innerHTML="<p>Ainda não há noites analis
   const selMes = document.getElementById("calMes"), grade = document.getElementById("calGrade");
   const ant = document.getElementById("mesAnt"), prox = document.getElementById("mesProx");
   const det = document.getElementById("detalhe"), painelDia = document.querySelector("main > .painel:not(#calendario)");
-  const ordem = APTOS.slice().sort((a, b) => (b.pct ?? -9) - (a.pct ?? -9));
+  const ordem = DADOS.aptos.map(resumo).sort((a, b) => (b.pct ?? -9) - (a.pct ?? -9));  // calendário: todas as noites
   const meses = mesesDoCalendario(new Date());
   const classe = { ACIMA: "st-acima", ABAIXO: "st-abaixo", "NA MÉDIA": "st-media", reservado: "st-reservado" };
   let doPainel = null;  // apartamento aberto no "Dia a dia" antes de abrir o calendário
