@@ -109,7 +109,7 @@ const notaTxt = an => an.nota?'★ '+an.nota.toLocaleString("pt-BR")+' <small st
 function listaDoApto(a){
   const box=document.getElementById("listaApto"); if(!box) return;
   const lista=concorrentesDoApto(a.noites, DADOS.anuncios||{});
-  box.querySelector("summary").textContent=`Concorrentes deste apartamento (${lista.length})`;
+  box.querySelector("summary").textContent=`Concorrentes de ${a.nome} (${lista.length})`;
   box.querySelector("div").innerHTML=lista.length?`<table class="c"><tr><th>Concorrente</th><th>Nota</th><th class="n">Distância</th><th class="n">Apareceu em</th></tr>
     ${lista.map(c=>{const t=tirou(a,c.id);return `<tr class="${t?"tirado":""}"><td><a href="${linkAirbnb(c.url)}" target="_blank" rel="noopener">${esc(c.nome)}</a><br>${selos(c)}${t?'<span class="selo fora">você tirou</span>':''}</td><td>${notaTxt(c)}</td><td class="n">${c.dist} m</td><td class="n">${c.noites} noite${c.noites>1?"s":""}</td></tr>`}).join("")}</table>
     <div class="dica">Para tirar alguém da conta, marque "Não" na coluna "Usar?" da aba "Meus concorrentes" da planilha e clique em "Recalcular com minhas escolhas" no robô.</div>`
