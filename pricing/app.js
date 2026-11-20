@@ -109,3 +109,53 @@ function verDia(i){const a=atual,n=a.noites[i],d=dataCurta(n.d);
     </table><div class="dica">O Airbnb mostra só o total dos concorrentes: não dá para separar a limpeza deles.</div></div></div>`;}
 if(cards.children.length){const ord=APTOS.slice().sort((a,b)=>(b.pct??-9)-(a.pct??-9));escolher(ord[0],cards.children[0]);}
 else document.getElementById("cards").innerHTML="<p>Ainda não há noites analisadas. Rode o robô.</p>";
+
+// ---- calendário: um apartamento (lista) e um mês por vez, do mês atual até dezembro do ano que vem ----
+(function () {
+  const sec = document.getElementById("calendario"), selApto = document.getElementById("calApto");
+  const selMes = document.getElementById("calMes"), grade = document.getElementById("calGrade");
+  const ant = document.getElementById("mesAnt"), prox = document.getElementById("mesProx");
+  const det = document.getElementById("detalhe"), painelDia = document.querySelector("main > .painel:not(#calendario)");
+  const ordem = APTOS.slice().sort((a, b) => (b.pct ?? -9) - (a.pct ?? -9));
+  const meses = mesesDoCalendario(new Date());
+  const classe = { ACIMA: "st-acima", ABAIXO: "st-abaixo", "NA MÉDIA": "st-media", reservado: "st-reservado" };
+  let doPainel = null;  // apartamento aberto no "Dia a dia" antes de abrir o calendário
+  if (!ordem.length) { document.getElementById("abrirCal").hidden = true; return; }
+  selApto.innerHTML = ordem.map((a, i) => `<option value="${i}">${esc(a.nome)}</option>`).join("");
+  selMes.innerHTML = meses.map((m, i) => `<option value="${i}">${nomeDoMes(m)}</option>`).join("");
+
+  function desenhar() {
+    const ap = ordem[+selApto.value], mi = +selMes.value;
+    ant.disabled = mi === 0; prox.disabled = mi === meses.length - 1;
+    grade.innerHTML = SEMANA_CAL.map(s => `<div class="ds">${s}</div>`).join("") + gradeDoMes(meses[mi], ap.noites).map(c => {
+      if (!c) return `<div class="dia vazio"></div>`;
+      if (c.i === null) return `<div class="dia"><div class="n">${c.dia}</div></div>`;
+      const n = ap.noites[c.i], st = classe[n.s] || "";
+      const precos = n.p ? `<div class="l x"><span>Média</span><b>${reais(n.m)}</b></div><div class="l"><span>Seu</span><b><i class="rs">R$ </i>${n.p.toLocaleString("pt-BR")}</b></div><div class="l x"><span>Diária</span><b>${reais(n.dl)}</b></div>` : "";
+      return `<div class="dia tem ${st}" data-i="${c.i}"><div class="n">${c.dia}<em>${esc(n.s)}</em></div>${precos}</div>`;
+    }).join("");
+    grade.querySelectorAll(".dia.tem").forEach(el => el.onclick = () => escolherDia(ap, el));
+    const primeiro = grade.querySelector(".dia.tem:not(.st-reservado)") || grade.querySelector(".dia.tem");
+    if (primeiro) escolherDia(ap, primeiro); else det.innerHTML = "";
+  }
+  function escolherDia(ap, el) {
+    grade.querySelectorAll(".dia.ativo").forEach(x => x.classList.remove("ativo"));
+    el.classList.add("ativo"); atual = ap; verDia(+el.dataset.i);
+  }
+  function abrir(sim) {
+    [...document.querySelector("main").children].forEach(x => { if (x !== sec) x.hidden = sim; });
+    sec.hidden = !sim; document.getElementById("abrirCal").hidden = sim;
+    if (sim) { doPainel = atual; sec.appendChild(det); desenhar(); }
+    else { painelDia.appendChild(det); atual = doPainel; if (atual) { const i = atual.noites.findIndex(n => n.p); verDia(i < 0 ? 0 : i); } }
+    window.scrollTo(0, 0);
+  }
+  document.getElementById("abrirCal").onclick = () => abrir(true);
+  document.getElementById("voltar").onclick = () => abrir(false);
+  selApto.onchange = selMes.onchange = desenhar;
+  ant.onclick = () => { selMes.value = Math.max(0, +selMes.value - 1); desenhar(); };
+  prox.onclick = () => { selMes.value = Math.min(meses.length - 1, +selMes.value + 1); desenhar(); };
+  if (location.search.includes("calendario")) {  // para tirar a foto: ?calendario&mes=1&apto=0
+    const p = new URLSearchParams(location.search);
+    selMes.value = p.get("mes") || 0; selApto.value = p.get("apto") || 0; abrir(true);
+  }
+})();

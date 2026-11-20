@@ -34,11 +34,33 @@ table.c td{padding:10px 8px;border-bottom:1px solid var(--borda)}table.c td.n{te
 .selo{display:inline-block;margin-top:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;margin-right:4px;white-space:nowrap}.sh{background:var(--verdeC);color:var(--verde2)}.pf{background:#fff;border:1px solid var(--borda);color:var(--texto)}
 .dica{font-size:12.5px;color:var(--suave);margin-top:4px}
 .mini{font-size:11.5px;color:var(--suave);margin-top:4px}
-@media(max-width:800px){.detalhe{grid-template-columns:1fr}}
+@media(max-width:800px){.detalhe{grid-template-columns:1fr}.detalhe>div{min-width:0}.detalhe>div:last-child{overflow-x:auto}}
+/* Calendário */
+[hidden]{display:none!important}
+.botao{font:600 14px Manrope;background:var(--verde2);color:#fff;border:0;border-radius:999px;padding:9px 20px;cursor:pointer;margin-bottom:6px}
+.botao:hover{background:var(--verde)}.botao.claro{background:#fff;color:var(--verde2);border:1px solid var(--verde2);margin:0}
+.topo{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}.topo h2{margin:0}
+select.apto{font:600 15px Manrope;color:var(--texto);border:1px solid var(--borda);border-radius:6px;padding:10px 14px;background:#fff;min-width:340px;max-width:100%}
+.navmes{display:flex;align-items:center;gap:12px;margin:16px 0 12px}
+.navmes button{width:36px;height:36px;flex:none;border-radius:999px;border:1px solid var(--borda);background:#fff;font-size:18px;color:var(--verde2);cursor:pointer}
+.navmes button:disabled{opacity:.35;cursor:default}
+.mesSel{font:700 18px Manrope;color:var(--verde2);border:1px solid var(--borda);border-radius:6px;padding:6px 12px;background:#fff;text-transform:capitalize;min-width:0}
+.grade{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.grade .ds{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--suave);text-align:center;padding:4px 0}
+.dia{min-height:92px;border-radius:12px;border:1px solid var(--borda);background:#fff;padding:8px 10px;font-size:12px;line-height:17px;color:var(--suave);min-width:0;overflow:hidden}
+.dia.tem{cursor:pointer;color:var(--texto);transition:transform .15s}.dia.tem:hover{transform:translateY(-2px);border-color:var(--verde)}
+.dia.vazio{border:0;background:none}.dia.ativo{outline:2px solid var(--verde2);outline-offset:1px}
+.dia .n{font-weight:700;font-size:14px;display:flex;justify-content:space-between;gap:4px}.dia .n em{font-style:normal;font-size:10.5px;font-weight:700;text-transform:uppercase;text-align:right;line-height:14px}
+.dia .l{display:flex;justify-content:space-between;gap:4px}.dia .l span{color:var(--suave)}.dia .l b{font-weight:700;white-space:nowrap}.dia .l b i{font-style:normal}
+.dia.st-acima{background:var(--acimaC)}.dia.st-acima em{color:var(--acima)}.dia.st-abaixo{background:var(--verdeC)}.dia.st-abaixo em{color:var(--abaixo)}
+.dia.st-media{background:#F3F8F7}.dia.st-reservado{background:var(--res)}
+.leg2{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--suave);margin-top:14px}.leg2 i{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:6px;vertical-align:-2px;border:1px solid var(--borda)}
+@media(max-width:800px){.dia .rs{display:none}.dia .l b{font-size:10.5px;letter-spacing:-.02em}.dia{min-height:54px;padding:5px 3px;font-size:11px;border-radius:8px}.dia .l.x,.dia .n em,.dia .l span{display:none}.dia .l{justify-content:flex-start}.dia .n{font-size:13px}
+  .grade{gap:4px}.grade .ds{font-size:10px;letter-spacing:0}select.apto{min-width:0;width:100%}.navmes{gap:8px}.mesSel{flex:1;font-size:16px}}
 @keyframes sobe{from{opacity:0;transform:translateY(14px)}}@keyframes cresce{from{transform:scaleY(0)}}
 @media(max-width:800px){main{padding:16px}.kpis{grid-template-columns:1fr 1fr;gap:16px}.cards{grid-template-columns:1fr;gap:16px}header{padding:12px 16px}header img{height:34px}.kpi b{font-size:36px;line-height:44px}}
 </style></head><body>
-<header><img src="rio-hosting-logo-site.jpg" alt="Rio Hosting"><div class="t"><h1>Pricing · Dashboard</h1><small>Atualizado em <span id="quando"></span></small></div></header>
+<header><img src="rio-hosting-logo-site.jpg" alt="Rio Hosting"><div class="t"><button class="botao" id="abrirCal">Ver calendário</button><h1>Pricing · Dashboard</h1><small>Atualizado em <span id="quando"></span></small></div></header>
 <main>
   <div class="kpis">
     <div class="kpi"><b id="k1">0</b><span>apartamentos analisados</span></div>
@@ -52,6 +74,14 @@ table.c td{padding:10px 8px;border-bottom:1px solid var(--borda)}table.c td.n{te
     <div class="legenda"><span><i style="background:var(--verde)"></i>Seu preço/noite</span><span><i style="background:var(--sol)"></i>Média dos concorrentes</span><span><i style="background:var(--res);height:10px"></i>Reservado</span></div>
     <div class="dica">Clique num dia do gráfico para ver a conta e os 5 concorrentes daquela noite.</div>
     <div id="detalhe"></div></div>
+  <section class="painel" id="calendario" hidden>
+    <div class="topo"><h2>Calendário · escolha o apartamento</h2><button class="botao claro" id="voltar">← Voltar ao painel</button></div>
+    <select class="apto" id="calApto" aria-label="Apartamento"></select>
+    <div class="navmes"><button id="mesAnt" aria-label="Mês anterior">‹</button><select class="mesSel" id="calMes" aria-label="Mês"></select><button id="mesProx" aria-label="Próximo mês">›</button></div>
+    <div class="grade" id="calGrade"></div>
+    <div class="leg2"><span><i style="background:var(--acimaC)"></i>Acima (+20%)</span><span><i style="background:#F3F8F7"></i>Na média</span><span><i style="background:var(--verdeC)"></i>Abaixo (−20%)</span><span><i style="background:var(--res)"></i>Reservado</span><span><i style="background:#fff"></i>Não analisado</span></div>
+    <div class="dica">Clique num dia para ver a conta e os 5 concorrentes daquela noite.</div>
+  </section>
 </main>
-<script src="dados.js"></script><script src="app.js"></script>
+<script src="dados.js"></script><script src="calendario.js"></script><script src="app.js"></script>
 </body></html>
