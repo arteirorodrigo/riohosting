@@ -79,20 +79,44 @@ const reais2 = v => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2
 document.getElementById("quando").textContent = DADOS.atualizado;
 const cor = s => ({ACIMA:"var(--acima)",ABAIXO:"var(--abaixo)","NA MÉDIA":"var(--media)",reservado:"var(--res)"})[s] || "#F3F8F7";
 const cards = document.getElementById("cards");
+const RECADO = {
+  caro: ["Caro e vazio · pense em baixar", "p-caro"], lotado: ["Lotado · pense em subir as próximas datas", "p-lot"],
+  atencao: ["Pouca reserva, preço na média · confira o anúncio", "p-at"],
+  abaixo: ["Pouca reserva mesmo abaixo da média · confira o anúncio", "p-at"], ok: ["Ok · vendendo bem", "p-ok"] };
+const ORDEM_RECADO = { caro: 0, lotado: 1, atencao: 2, abaixo: 3 };
+const CURTO = { caro: "Caro e vazio", lotado: "Lotado", atencao: "Pouca reserva", abaixo: "Pouca reserva", ok: "Ok" };
+const FOCO_MAX = 3;  // "Olhe primeiro" mostra os 3 mais urgentes; o resto abre num clique
+const pctCurto = p => p === null ? "—" : (p > 0 ? "+" : "") + Math.round(p * 100) + "%";
 function desenharPainel() {
   [["k1",KPI.aptos,""],["k2",KPI.ocup,"%"],["k3",KPI.acima,""],["k4",KPI.abaixo,""]].forEach(([id,v,s])=>contar(document.getElementById(id),v,s));
   cards.innerHTML = "";
-  APTOS.slice().sort((a,b)=>(b.pct??-9)-(a.pct??-9)).forEach((a,i)=>{
-    const c = document.createElement("div"); c.className="card"; c.style.animationDelay=(.08*i)+"s";
-    const tom = a.pct===null?"var(--suave)":a.pct>.2?"var(--acima)":a.pct<-.2?"var(--abaixo)":"var(--verde)";
-    const vazio = !a.noites.length ? "sem noites analisadas neste período" : "sem noites livres para comparar";
-    c.innerHTML=`<h3>${esc(a.nome)}</h3><div class="precos"><div>Seu<b>${reais(a.seu)}</b></div><div style="text-align:right">Média<b>${reais(a.mercado)}</b></div></div>${a.diaria?`<div class="mini">Diária ${reais(a.diaria)} sem limpeza</div>`:""}
-     <div class="barra"><i style="background:${tom}"></i></div><span class="tag" style="color:${tom}">${a.pct===null?vazio:pctTxt(a.pct)+" vs. mercado"}</span>
-     <div class="faixa">${a.noites.map((n,j)=>`<i title="${n.d} · ${esc(n.s)}${n.pouco?" · poucos dados":""}" class="${n.pouco?"pouco":""}" style="background:${cor(n.s)};animation-delay:${.6+.08*i+.03*j}s"></i>`).join("")}</div>`;
+  const ord = APTOS.slice().sort((a,b)=>(b.pct??-9)-(a.pct??-9));
+  ord.forEach(a => a.recado = recadoDoApto(a.pct, a.ocup, a.noites.length > 0));
+  // "Olhe primeiro": só quem pede atenção no período
+  const foco = document.getElementById("foco"), atencao = ord.filter(a => a.recado && a.recado !== "ok")
+    .sort((a, b) => ORDEM_RECADO[a.recado] - ORDEM_RECADO[b.recado] || (b.pct ?? 9) - (a.pct ?? 9));
+  foco.hidden = !atencao.length;
+  foco.querySelector(".linhas").innerHTML = atencao.map((a, i) => `<div class="lf${i >= FOCO_MAX ? " extra" : ""}" data-id="${esc(a.id)}"><b>${esc(a.nome)}</b>
+    <span>Diária <b>${reais(a.diaria)}</b></span><span>Ocupação <b>${Math.round(a.ocup * 100)}%</b></span>
+    <span class="pill ${RECADO[a.recado][1]}">${RECADO[a.recado][0]}</span></div>`).join("") +
+    (atencao.length > FOCO_MAX ? `<button class="mais">Ver os outros ${atencao.length - FOCO_MAX}</button>` : "");
+  foco.classList.remove("aberto");
+  const mais = foco.querySelector(".mais");
+  if (mais) mais.onclick = () => { foco.classList.add("aberto"); mais.remove(); };
+  ord.forEach((a,i)=>{
+    const c = document.createElement("div"); c.className="card"; c.style.animationDelay=(.05*i)+"s"; c.dataset.id = a.id;
+    const oc = Math.round(a.ocup * 100), tom = a.pct===null?"":a.pct>.2?"verm":a.pct<-.2?"verde":"";
+    const vazio = !a.noites.length ? "sem noites no período" : "sem noites livres";
+    c.innerHTML=`<h3>${esc(a.nome)}</h3><div class="corpo"><div><span class="rot2">Diária</span><b class="dia-v">${reais(a.diaria)}</b>
+      <span class="vs ${tom}">${a.pct===null?vazio:pctCurto(a.pct)+" vs. mercado"}</span></div>
+      <div class="anel" title="${a.reservadas} de ${a.noites.length} noites reservadas" style="--o:${oc*3.6}deg"><span>${oc}%</span></div></div>
+      ${a.recado?`<span class="pill ${RECADO[a.recado][1]}">${CURTO[a.recado]}</span>`:""}
+      <div class="faixa">${a.noites.map((n,j)=>`<i class="${n.pouco?"pouco":""}" title="${n.d} · ${esc(n.s)}${n.pouco?" · poucos dados":""}" style="background:${cor(n.s)};animation-delay:${.4+.05*i+.02*j}s"></i>`).join("")}</div>`;
     c.onclick=()=>escolher(a,c); cards.appendChild(c);
-    setTimeout(()=>c.querySelector(".barra i").style.width=(a.pct===null?100:Math.min(100,50+a.pct*40))+"%",300+80*i);
   });
-  if (cards.children.length) { const ord=APTOS.slice().sort((a,b)=>(b.pct??-9)-(a.pct??-9)); escolher(ord[0],cards.children[0]); }
+  foco.querySelectorAll(".lf").forEach(l => l.onclick = () => {
+    const c = cards.querySelector(`[data-id="${CSS.escape(l.dataset.id)}"]`); if (c) { c.click(); document.getElementById("titulo").scrollIntoView({behavior:"smooth"}); } });
+  if (cards.children.length) escolher(ord[0],cards.children[0]);
   else cards.innerHTML="<p>Ainda não há noites analisadas. Rode o robô.</p>";
 }
 let atual=null;
@@ -130,10 +154,10 @@ function verDia(i){const a=atual,n=a.noites[i],d=dataCurta(n.d);
       <small>= ${reais2(n.total/N)} por noite com limpeza</small></div>
     <div class="comp">Média dos ${n.n} concorrentes parecidos: <b>${reais2(n.mx)}</b> por noite (<b>${reais2(Math.round(mediaTot))}</b> na estadia, já com a limpeza deles).<br>Você está <b style="color:${corS[1]}">${pct>0?"+":""}${pct}%</b> em relação à média.${n.pouco?`<br><b>Poucos dados:</b> só ${n.n} concorrente${n.n>1?"s":""} na conta. Use esta cor com cuidado.`:""}${n.completo?"":`<br><small>Rodada antiga: a lista ao lado mostra só os 5 principais. A lista completa vem nas próximas rodadas.</small>`}
       ${n.md?`<div class="stats"><span>Média <b>${reais2(n.mx)}</b></span><span>Mediana <b>${reais2(n.md)}</b></span><span>Menor <b>${reais2(n.mn)}</b></span><span>Maior <b>${reais2(n.mxp)}</b></span><span><b>${n.n}</b> concorrentes na conta</span></div>`:""}</div></div>
-    <div><table class="c"><tr><th>Concorrente</th><th>Nota</th><th class="n">Distância</th><th class="n">Por noite</th><th class="n">Total ${N} noites</th></tr>
+    <div><table class="c"><tr><th>Concorrente</th><th>Nota</th><th class="n so-pc">Distância</th><th class="n">Por noite</th><th class="n so-pc">Total ${N} noites</th></tr>
     ${n.conc.slice().sort((x,y)=>x.noite-y.noite).map(c=>{const an=(DADOS.anuncios||{})[c.id]||{},t=tirou(a,c.id),na=n.completo&&c.res===null&&!c.fora&&!t;
       return `<tr class="${t?"tirado":""}"><td><a href="${linkAirbnb(an.url)}" target="_blank" rel="noopener">${esc(an.nome)}</a><br>${na?'<span class="selo media">na média</span>':''}${selos(an)}${seloRes(c.res)}${t?'<span class="selo fora">você tirou</span>':''}</td>
-      <td>${notaTxt(an)}</td><td class="n">${c.dist} m</td><td class="n">${reais2(c.noite)}</td><td class="n">${reais2(Math.round(c.noite*N))}</td></tr>`}).join("")}
+      <td>${notaTxt(an)}</td><td class="n so-pc">${c.dist} m</td><td class="n">${reais2(c.noite)}</td><td class="n so-pc">${reais2(Math.round(c.noite*N))}</td></tr>`}).join("")}
     </table><div class="dica">O Airbnb mostra só o total dos concorrentes: não dá para separar a limpeza deles.</div></div></div>`;}
 
 // ---- filtro de período (lembra a escolha neste navegador) ----
@@ -173,7 +197,7 @@ function verDia(i){const a=atual,n=a.noites[i],d=dataCurta(n.d);
       if (!c) return `<div class="dia vazio"></div>`;
       if (c.i === null) return `<div class="dia"><div class="n">${c.dia}</div></div>`;
       const n = ap.noites[c.i], st = classe[n.s] || "";
-      const precos = n.p ? `<div class="l x"><span>Média</span><b>${reais(n.m)}</b></div><div class="l"><span>Seu</span><b><i class="rs">R$ </i>${n.p.toLocaleString("pt-BR")}</b></div><div class="l x"><span>Diária</span><b>${reais(n.dl)}</b></div>` : "";
+      const precos = n.p ? `<div class="l"><span>Diária</span><b><i class="rs">R$ </i>${n.dl ? n.dl.toLocaleString("pt-BR") : "—"}</b></div><div class="l x"><span>c/ limpeza</span><b>${reais(n.p)}</b></div><div class="l x"><span>Média</span><b>${reais(n.m)}</b></div>` : "";
       return `<div class="dia tem ${st}${n.pouco ? " pouco" : ""}" data-i="${c.i}"><div class="n">${c.dia}<em>${esc(n.s)}${n.pouco ? "*" : ""}</em></div>${precos}</div>`;
     }).join("");
     grade.querySelectorAll(".dia.tem").forEach(el => el.onclick = () => escolherDia(ap, el));
@@ -187,6 +211,7 @@ function verDia(i){const a=atual,n=a.noites[i],d=dataCurta(n.d);
   function abrir(sim) {
     [...document.querySelector("main").children].forEach(x => { if (x !== sec) x.hidden = sim; });
     sec.hidden = !sim; document.getElementById("abrirCal").hidden = sim;
+    if (!sim) { const f = document.getElementById("foco"); f.hidden = !f.querySelector(".lf"); }
     if (sim) { doPainel = atual; sec.appendChild(det); desenhar(); }
     else { painelDia.appendChild(det); atual = doPainel; if (atual) { const i = atual.noites.findIndex(n => n.p); verDia(i < 0 ? 0 : i); } }
     window.scrollTo(0, 0);
@@ -200,4 +225,25 @@ function verDia(i){const a=atual,n=a.noites[i],d=dataCurta(n.d);
     const p = new URLSearchParams(location.search);
     selMes.value = p.get("mes") || 0; selApto.value = p.get("apto") || 0; abrir(true);
   }
+})();
+
+// Logo: volta ao início do painel (fecha o calendário, se estiver aberto)
+document.getElementById("logo").onclick = e => {
+  e.preventDefault();
+  if (!document.getElementById("calendario").hidden) document.getElementById("voltar").click();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+// Menu ☰: atalhos deste painel e as outras ferramentas da equipe
+(function () {
+  const bt = document.getElementById("menuBt"), menu = document.getElementById("menu");
+  const abrir = sim => { menu.hidden = !sim; bt.setAttribute("aria-expanded", sim); };
+  const marcar = () => { const cal = !document.getElementById("calendario").hidden;
+    document.getElementById("mInicio").classList.toggle("on", !cal); document.getElementById("mCal").classList.toggle("on", cal); };
+  bt.onclick = e => { e.stopPropagation(); marcar(); abrir(menu.hidden); };
+  document.addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target)) abrir(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") abrir(false); });
+  document.getElementById("mInicio").onclick = e => { e.preventDefault(); abrir(false); document.getElementById("logo").click(); };
+  document.getElementById("mCal").onclick = e => { e.preventDefault(); abrir(false);
+    if (document.getElementById("calendario").hidden) document.getElementById("abrirCal").click(); };
 })();

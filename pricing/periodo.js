@@ -33,4 +33,15 @@ function concorrentesDoApto(noites, anuncios) {
   return Object.values(juntos).sort((a, b) => a.dist - b.dist || (a.id < b.id ? -1 : 1));
 }
 
-if (typeof module !== "undefined") module.exports = { opcoesDePeriodo, noPeriodo, concorrentesDoApto };
+// Recado do cartão (combinado com o dono em 20/11/2026), olhando o período escolhido:
+// lotado = 80% ou mais reservado; com menos de 40% reservado: caro (mais de 20% acima da média),
+// atencao (preço na média) ou abaixo (mais de 20% abaixo); o resto = ok
+function recadoDoApto(pct, ocup, temNoites) {
+  if (!temNoites) return null;
+  if (ocup >= 0.8) return "lotado";
+  if (pct === null || pct === undefined) return null;
+  if (ocup < 0.4) return pct > 0.2 ? "caro" : pct < -0.2 ? "abaixo" : "atencao";
+  return "ok";
+}
+
+if (typeof module !== "undefined") module.exports = { opcoesDePeriodo, noPeriodo, concorrentesDoApto, recadoDoApto };
