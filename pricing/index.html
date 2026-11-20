@@ -21,6 +21,7 @@ h2{font-size:12px;line-height:16px;font-weight:600;text-transform:uppercase;lett
 .card h3{margin:0 0 10px;font-size:14px;line-height:20px;font-weight:600;height:40px;overflow:hidden}
 .precos{display:flex;justify-content:space-between;font-size:12px;color:var(--suave)}.precos b{display:block;font-size:18px;color:var(--texto)}
 .barra{height:8px;background:var(--borda);border-radius:4px;margin:12px 0 6px;overflow:hidden}.barra i{display:block;height:100%;width:0;border-radius:4px;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+.faixa i.pouco,.dia.pouco{opacity:.6}.chip.pouco{background:#F3F8F7;color:#4F6662;border:1px dashed #4F6662}
 .tag{font-size:12px;font-weight:700}.faixa{display:flex;gap:2px;margin-top:10px}.faixa i{flex:1;height:14px;border-radius:2px;animation:cresce .4s both}
 .painel{background:#fff;border:1px solid var(--borda);border-radius:12px;padding:24px;margin-bottom:48px}
 .legenda{display:flex;gap:18px;font-size:13px;color:var(--suave);margin-top:6px}.legenda i{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
@@ -74,8 +75,8 @@ select.apto{font:600 15px Manrope;color:var(--texto);border:1px solid var(--bord
   <div class="kpis">
     <div class="kpi"><b id="k1">0</b><span>apartamentos analisados</span></div>
     <div class="kpi"><b id="k2">0</b><span>das noites analisadas já reservadas</span></div>
-    <div class="kpi vermelho"><b id="k3">0</b><span>acima do mercado (+20%)</span></div>
-    <div class="kpi verde"><b id="k4">0</b><span>abaixo do mercado (−20%)</span></div>
+    <div class="kpi vermelho"><b id="k3">0</b><span>apartamentos acima do mercado (+20%)</span></div>
+    <div class="kpi verde"><b id="k4">0</b><span>apartamentos abaixo do mercado (−20%)</span></div>
   </div>
   <h2>Seus apartamentos · seu preço × média dos concorrentes</h2>
   <div class="cards" id="cards"></div>
@@ -90,7 +91,7 @@ select.apto{font:600 15px Manrope;color:var(--texto);border:1px solid var(--bord
     <div class="navmes"><button id="mesAnt" aria-label="Mês anterior">‹</button><select class="mesSel" id="calMes" aria-label="Mês"></select><button id="mesProx" aria-label="Próximo mês">›</button></div>
     <div class="grade" id="calGrade"></div>
     <div class="leg2"><span><i style="background:var(--acimaC)"></i>Acima (+20%)</span><span><i style="background:#F3F8F7"></i>Na média</span><span><i style="background:var(--verdeC)"></i>Abaixo (−20%)</span><span><i style="background:var(--res)"></i>Reservado</span><span><i style="background:#fff"></i>Não analisado</span></div>
-    <div class="dica">Clique num dia para ver a conta e os 5 concorrentes daquela noite.</div>
+    <div class="dica">Clique num dia para ver a conta e os concorrentes daquela noite. * = poucos dados (menos de 5 concorrentes).</div>
   </section>
 </main>
 <script src="dados.js"></script><script src="calendario.js"></script><script src="periodo.js"></script><script src="app.js"></script>

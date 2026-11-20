@@ -24,7 +24,7 @@ function calcular(periodo) {
   const total = APTOS.reduce((s, a) => s + a.noites.length, 0);
   KPI = {
     aptos: APTOS.length,
-    ocup: total ? Math.round(100 * APTOS.reduce((s, a) => s + a.reservadas, 0) / total) : 0,
+    ocup: total ? Math.round(100 * APTOS.reduce((s, a) => s + a.reservadas, 0) / total) : null,  // sem noites: "—"
     acima: APTOS.filter(a => a.pct !== null && a.pct > 0.2).length,
     abaixo: APTOS.filter(a => a.pct !== null && a.pct < -0.2).length,
   };
@@ -34,6 +34,7 @@ const pctTxt = v => v === null ? "lotado" : (v > 0 ? "+" : "") + Math.round(v * 
 function dataCurta(iso) { const [a, m, d] = iso.split("-"); const dia = new Date(+a, m - 1, +d); return { dm: d + "/" + m, sem: DIAS[dia.getDay()] }; }
 
 function contar(el, alvo, sufixo = "", ms = 1200) {
+  if (alvo === null) { el.textContent = "—"; return; }
   if (FINAL) { el.textContent = alvo + sufixo; return; }
   const t0 = performance.now();
   (function passo(t) { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3);
@@ -87,7 +88,7 @@ function desenharPainel() {
     const vazio = !a.noites.length ? "sem noites analisadas neste período" : "sem noites livres para comparar";
     c.innerHTML=`<h3>${esc(a.nome)}</h3><div class="precos"><div>Seu<b>${reais(a.seu)}</b></div><div style="text-align:right">Média<b>${reais(a.mercado)}</b></div></div>${a.diaria?`<div class="mini">Diária ${reais(a.diaria)} sem limpeza</div>`:""}
      <div class="barra"><i style="background:${tom}"></i></div><span class="tag" style="color:${tom}">${a.pct===null?vazio:pctTxt(a.pct)+" vs. mercado"}</span>
-     <div class="faixa">${a.noites.map((n,j)=>`<i title="${n.d} · ${esc(n.s)}" style="background:${cor(n.s)};animation-delay:${.6+.08*i+.03*j}s"></i>`).join("")}</div>`;
+     <div class="faixa">${a.noites.map((n,j)=>`<i title="${n.d} · ${esc(n.s)}${n.pouco?" · poucos dados":""}" class="${n.pouco?"pouco":""}" style="background:${cor(n.s)};animation-delay:${.6+.08*i+.03*j}s"></i>`).join("")}</div>`;
     c.onclick=()=>escolher(a,c); cards.appendChild(c);
     setTimeout(()=>c.querySelector(".barra i").style.width=(a.pct===null?100:Math.min(100,50+a.pct*40))+"%",300+80*i);
   });
@@ -118,16 +119,16 @@ function verDia(i){const a=atual,n=a.noites[i],d=dataCurta(n.d);
   grafico(document.getElementById("graf"),a,{grade:"#E6ECEB",eixo:"#4F6662",reservado:"#F3F8F7",seu:"#149C8B",media:"#F2B33D"},verDia,i);
   const corS={ACIMA:["#FBE8E3","#A8432E"],ABAIXO:["#E3F4F1","#0B7266"],"NA MÉDIA":["#EEF3F2","#4F6662"]}[n.s]||["#eee","#888"];
   const box=document.getElementById("detalhe");
-  if(!n.p){box.innerHTML=`<div class="detalhe" style="display:block"><h3>${d.sem}, ${d.dm}<span class="chip" style="background:${corS[0]};color:${corS[1]}">${esc(n.s)}</span></h3><p class="comp">Sem comparação nesta noite.</p></div>`;return;}
-  const N=DADOS.noites,mediaTot=n.mx*N,pct=Math.round((n.p/n.m-1)*100);
+  if(!n.p||!n.m){box.innerHTML=`<div class="detalhe" style="display:block"><h3>${d.sem}, ${d.dm}<span class="chip" style="background:${corS[0]};color:${corS[1]}">${esc(n.s)}</span></h3><p class="comp">Sem comparação nesta noite.${n.p?` Seu preço: <b>${reais2(n.p)}</b> por noite com limpeza.`:""}</p></div>`;return;}
+  const N=n.en||DADOS.noites,mediaTot=n.mx*N,pct=Math.round((n.p/n.m-1)*100);
   box.innerHTML=`<div class="detalhe"><div>
-    <h3>${d.sem}, ${d.dm}<span class="chip" style="background:${corS[0]};color:${corS[1]}">${esc(n.s)}</span></h3>
+    <h3>${d.sem}, ${d.dm}<span class="chip" style="background:${corS[0]};color:${corS[1]}">${esc(n.s)}</span>${n.pouco?`<span class="chip pouco">poucos dados</span>`:""}</h3>
     <div class="dica">Estadia de ${N} noites a partir deste dia, ${DADOS.hospedes} hóspedes</div>
     <div class="conta"><div><span>${N} diárias de ${reais2(n.dlx)}</span><span>${reais2(n.diarias)}</span></div>
       <div><span>+ taxa de limpeza</span><span>${reais2(n.lp)}</span></div>
       <div class="tot"><span>Total pago pelo hóspede</span><span>${reais2(n.total)}</span></div>
       <small>= ${reais2(n.total/N)} por noite com limpeza</small></div>
-    <div class="comp">Média dos ${n.n} concorrentes parecidos: <b>${reais2(n.mx)}</b> por noite (<b>${reais2(Math.round(mediaTot))}</b> na estadia, já com a limpeza deles).<br>Você está <b style="color:${corS[1]}">${pct>0?"+":""}${pct}%</b> em relação à média.
+    <div class="comp">Média dos ${n.n} concorrentes parecidos: <b>${reais2(n.mx)}</b> por noite (<b>${reais2(Math.round(mediaTot))}</b> na estadia, já com a limpeza deles).<br>Você está <b style="color:${corS[1]}">${pct>0?"+":""}${pct}%</b> em relação à média.${n.pouco?`<br><b>Poucos dados:</b> só ${n.n} concorrente${n.n>1?"s":""} na conta. Use esta cor com cuidado.`:""}${n.completo?"":`<br><small>Rodada antiga: a lista ao lado mostra só os 5 principais. A lista completa vem nas próximas rodadas.</small>`}
       ${n.md?`<div class="stats"><span>Média <b>${reais2(n.mx)}</b></span><span>Mediana <b>${reais2(n.md)}</b></span><span>Menor <b>${reais2(n.mn)}</b></span><span>Maior <b>${reais2(n.mxp)}</b></span><span><b>${n.n}</b> concorrentes na conta</span></div>`:""}</div></div>
     <div><table class="c"><tr><th>Concorrente</th><th>Nota</th><th class="n">Distância</th><th class="n">Por noite</th><th class="n">Total ${N} noites</th></tr>
     ${n.conc.slice().sort((x,y)=>x.noite-y.noite).map(c=>{const an=(DADOS.anuncios||{})[c.id]||{},t=tirou(a,c.id),na=n.completo&&c.res===null&&!c.fora&&!t;
@@ -173,7 +174,7 @@ function verDia(i){const a=atual,n=a.noites[i],d=dataCurta(n.d);
       if (c.i === null) return `<div class="dia"><div class="n">${c.dia}</div></div>`;
       const n = ap.noites[c.i], st = classe[n.s] || "";
       const precos = n.p ? `<div class="l x"><span>Média</span><b>${reais(n.m)}</b></div><div class="l"><span>Seu</span><b><i class="rs">R$ </i>${n.p.toLocaleString("pt-BR")}</b></div><div class="l x"><span>Diária</span><b>${reais(n.dl)}</b></div>` : "";
-      return `<div class="dia tem ${st}" data-i="${c.i}"><div class="n">${c.dia}<em>${esc(n.s)}</em></div>${precos}</div>`;
+      return `<div class="dia tem ${st}${n.pouco ? " pouco" : ""}" data-i="${c.i}"><div class="n">${c.dia}<em>${esc(n.s)}${n.pouco ? "*" : ""}</em></div>${precos}</div>`;
     }).join("");
     grade.querySelectorAll(".dia.tem").forEach(el => el.onclick = () => escolherDia(ap, el));
     const primeiro = grade.querySelector(".dia.tem:not(.st-reservado)") || grade.querySelector(".dia.tem");
